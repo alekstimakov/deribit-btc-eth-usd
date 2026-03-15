@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: crypto2-postgres
+    environment:
+      POSTGRES_DB: crypto2
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: crypto2-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  app:
+    image: alekstimakov/deribit:tagname
+    container_name: crypto2-app
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DERIBIT_BASE_URL: https://test.deribit.com/api/v2
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  worker:
+    image: alekstimakov/deribit:tagname
+    container_name: crypto2-worker
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DERIBIT_BASE_URL: https://test.deribit.com/api/v2
+    command: celery -A app.workers.celery_app:celery_app worker --loglevel=info --pool=solo
+    restart: unless-stopped
+
+  beat:
+    image: alekstimakov/deribit:tagname
+    container_name: crypto2-beat
+    depends_on:
+      - redis
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DERIBIT_BASE_URL: https://test.deribit.com/api/v2
+    command: celery -A app.workers.celery_app:celery_app beat --loglevel=info
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
