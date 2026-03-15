@@ -1,22 +1,75 @@
-version: "3.9"
-
 services:
+  app:
+    build: .
+    container_name: crypto2-app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./.env:/app/.env:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DERIBIT_BASE_URL: https://test.deribit.com/api/v2
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
   postgres:
     image: postgres:16
-    environment:
-      POSTGRES_DB: crypto2
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+    container_name: crypto2-postgres
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   redis:
     image: redis:7
+    container_name: crypto2-redis
     ports:
       - "6379:6379"
+    restart: unless-stopped
+
+  worker:
+    build: .
+    container_name: crypto2-worker
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./.env:/app/.env:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DERIBIT_BASE_URL: https://test.deribit.com/api/v2
+    command: celery -A app.workers.celery_app:celery_app worker --loglevel=info --pool=solo
+    restart: unless-stopped
+
+  beat:
+    build: .
+    container_name: crypto2-beat
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./.env:/app/.env:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/crypto2
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DERIBIT_BASE_URL: https://test.deribit.com/api/v2
+    command: celery -A app.workers.celery_app:celery_app beat --loglevel=info
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-
