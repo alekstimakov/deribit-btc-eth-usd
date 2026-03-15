@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import os
 from pathlib import Path
 import sys
 
@@ -18,6 +19,11 @@ import app.db.models  # noqa: F401
 
 
 config = context.config
+
+# Use DATABASE_URL from environment when available (important for Docker).
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
     # Подключаем конфиг логирования из alembic.ini:
