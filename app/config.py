@@ -1,3 +1,5 @@
+"""Централизованная конфигурация приложения из переменных окружения."""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

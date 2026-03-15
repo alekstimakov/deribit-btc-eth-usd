@@ -1,3 +1,5 @@
+"""Конфигурация Celery Beat: запуск задачи сбора цен каждую минуту."""
+
 from celery.schedules import crontab
 
 from app.workers.celery_app import celery_app

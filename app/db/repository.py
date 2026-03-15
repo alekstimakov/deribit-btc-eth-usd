@@ -1,3 +1,5 @@
+"""Repository-слой: операции записи и чтения цен из таблицы prices."""
+
 from collections.abc import Mapping, Sequence
 from decimal import Decimal
 
@@ -8,6 +10,7 @@ from app.db.models import Price
 
 
 def insert_prices_batch(db: Session, items: Sequence[Mapping[str, object]]) -> int:
+    """Сохраняет пачку цен в одной транзакции и возвращает количество вставленных строк."""
     saved_count = 0
     try:
         for item in items:
@@ -27,6 +30,7 @@ def insert_prices_batch(db: Session, items: Sequence[Mapping[str, object]]) -> i
 
 
 def get_all_by_ticker(db: Session, ticker: str) -> list[Price]:
+    """Возвращает все записи по тикеру в хронологическом порядке."""
     return (
         db.query(Price)
         .filter(Price.ticker == ticker)
@@ -36,6 +40,7 @@ def get_all_by_ticker(db: Session, ticker: str) -> list[Price]:
 
 
 def get_latest_by_ticker(db: Session, ticker: str) -> Price | None:
+    """Возвращает последнюю запись по тикеру или None, если данных нет."""
     return (
         db.query(Price)
         .filter(Price.ticker == ticker)
@@ -45,6 +50,7 @@ def get_latest_by_ticker(db: Session, ticker: str) -> Price | None:
 
 
 def get_prices_by_date_range(db: Session, ticker: str, from_ts: int, to_ts: int) -> list[Price]:
+    """Возвращает записи тикера в диапазоне [from_ts, to_ts]."""
     return (
         db.query(Price)
         .filter(

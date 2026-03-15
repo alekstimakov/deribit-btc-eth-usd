@@ -1,3 +1,5 @@
+"""Service-слой: валидация бизнес-правил и делегирование в repository."""
+
 from collections.abc import Mapping, Sequence
 from decimal import Decimal
 
@@ -15,6 +17,7 @@ ALLOWED_TICKERS = {"btc_usd", "eth_usd"}
 
 
 def _validate_ticker(ticker: str) -> str:
+    """Проверяет тикер и возвращает нормализованное значение."""
     normalized = str(ticker).lower()
     if normalized not in ALLOWED_TICKERS:
         raise ValueError(f"Unsupported ticker: {ticker}")
@@ -22,6 +25,7 @@ def _validate_ticker(ticker: str) -> str:
 
 
 def _validate_ts_range(from_ts: int, to_ts: int) -> tuple[int, int]:
+    """Проверяет корректность диапазона UNIX timestamp."""
     from_ts_int = int(from_ts)
     to_ts_int = int(to_ts)
     if from_ts_int <= 0 or to_ts_int <= 0:
@@ -32,6 +36,7 @@ def _validate_ts_range(from_ts: int, to_ts: int) -> tuple[int, int]:
 
 
 def save_prices(db: Session, items: Sequence[Mapping[str, object]]) -> int:
+    """Валидирует входные данные и сохраняет цены пачкой."""
     normalized_items: list[dict[str, object]] = []
 
     for item in items:
@@ -56,14 +61,17 @@ def save_prices(db: Session, items: Sequence[Mapping[str, object]]) -> int:
 
 
 def get_prices(db: Session, ticker: str) -> list[Price]:
+    """Возвращает все сохраненные цены по тикеру."""
     return get_all_by_ticker(db=db, ticker=_validate_ticker(ticker))
 
 
 def get_latest_price(db: Session, ticker: str) -> Price | None:
+    """Возвращает последнюю цену по тикеру."""
     return get_latest_by_ticker(db=db, ticker=_validate_ticker(ticker))
 
 
 def get_prices_for_period(db: Session, ticker: str, from_ts: int, to_ts: int) -> list[Price]:
+    """Возвращает цены тикера за заданный период."""
     normalized_ticker = _validate_ticker(ticker)
     from_ts_int, to_ts_int = _validate_ts_range(from_ts=from_ts, to_ts=to_ts)
     return get_prices_by_date_range(

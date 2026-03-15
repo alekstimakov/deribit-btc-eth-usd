@@ -1,3 +1,5 @@
+"""HTTP API для чтения сохраненных цен: all, latest и by_date."""
+
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,6 +20,7 @@ def read_all_prices(
     ticker: Ticker = Query(..., description="Выбор валюты"),
     db: Session = Depends(get_db),
 ) -> PriceListOut:
+    """GET /prices/all: все записи по выбранному тикеру."""
     # Возвращает все записи по выбранному тикеру.
     try:
         items = get_prices(db=db, ticker=ticker)
@@ -31,6 +34,7 @@ def read_latest_price(
     ticker: Ticker = Query(..., description="Выбор валюты"),
     db: Session = Depends(get_db),
 ) -> PriceOut:
+    """GET /prices/latest: последняя запись по тикеру."""
     # Возвращает последнюю цену по тикеру.
     try:
         item = get_latest_price(db=db, ticker=ticker)
@@ -48,6 +52,7 @@ def read_prices_by_date(
     to_ts: int = Query(..., description="Конец диапазона UNIX timestamp"),
     db: Session = Depends(get_db),
 ) -> PriceListOut:
+    """GET /prices/by_date: записи тикера в заданном диапазоне времени."""
     # Возвращает цены тикера в заданном интервале времени.
     try:
         items = get_prices_for_period(

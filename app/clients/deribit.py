@@ -1,9 +1,13 @@
+"""Клиент для получения index price с Deribit API."""
+
 import time
 
 import httpx
 
 
 class DeribitClient:
+    """HTTP-клиент Deribit для получения цен по тикерам."""
+
     def __init__(self, base_url: str, timeout: float = 5.0) -> None:
         # Базовый URL API (без завершающего "/").
         self.base_url = base_url.rstrip("/")
@@ -11,6 +15,7 @@ class DeribitClient:
         self.timeout = timeout
 
     async def get_index_price(self, ticker: str) -> dict:
+        """Запрашивает index price одного тикера и возвращает payload для сохранения в БД."""
         # Нормализуем тикер к нижнему регистру (btc_usd / eth_usd).
         ticker = ticker.lower()
         # Полный endpoint Deribit для получения index price.

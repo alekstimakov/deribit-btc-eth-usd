@@ -1,3 +1,5 @@
+"""Точка входа FastAPI-приложения и подключение API-роутеров."""
+
 from fastapi import FastAPI
 
 from app.api.v1.prices import router as prices_router

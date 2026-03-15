@@ -1,3 +1,5 @@
+"""Инициализация SQLAlchemy engine и фабрики сессий."""
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

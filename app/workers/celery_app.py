@@ -1,3 +1,5 @@
+"""Инициализация Celery-приложения и регистрация задач/расписания."""
+
 from celery import Celery
 
 from app.config import settings
