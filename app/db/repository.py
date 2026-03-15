@@ -11,20 +11,47 @@ def insert_prices_batch(db: Session, items: Sequence[Mapping[str, object]]) -> i
     saved_count = 0
     try:
         for item in items:
-            # ORM-объект = будущая строка таблицы prices.
             row = Price(
                 ticker=str(item["ticker"]),
                 price=Decimal(str(item["price"])),
                 ts_unix=int(item["ts_unix"]),
             )
-            # Добавляем в текущую транзакцию.
             db.add(row)
             saved_count += 1
 
-        # Фиксируем все изменения в БД одной операцией.
         db.commit()
         return saved_count
     except SQLAlchemyError:
-        # Если запись не удалась, откатываем всю пачку.
         db.rollback()
         raise
+
+
+def get_all_by_ticker(db: Session, ticker: str) -> list[Price]:
+    return (
+        db.query(Price)
+        .filter(Price.ticker == ticker)
+        .order_by(Price.ts_unix.asc())
+        .all()
+    )
+
+
+def get_latest_by_ticker(db: Session, ticker: str) -> Price | None:
+    return (
+        db.query(Price)
+        .filter(Price.ticker == ticker)
+        .order_by(Price.ts_unix.desc())
+        .first()
+    )
+
+
+def get_prices_by_date_range(db: Session, ticker: str, from_ts: int, to_ts: int) -> list[Price]:
+    return (
+        db.query(Price)
+        .filter(
+            Price.ticker == ticker,
+            Price.ts_unix >= from_ts,
+            Price.ts_unix <= to_ts,
+        )
+        .order_by(Price.ts_unix.asc())
+        .all()
+    )
