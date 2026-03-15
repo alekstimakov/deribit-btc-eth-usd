@@ -1,63 +1,29 @@
+from collections.abc import Mapping, Sequence
+from decimal import Decimal
 
-def save_price(db, items) -> int:
-    saved_count = 0
-    allowed_ticker = {'btc_usd', 'eth_usd'}
+from sqlalchemy.orm import Session
 
-    try:
-        for item in items:
-            ticker = item['ticker']
-            price = item['price']
-            ts_unix = item['ts_unix']
+from app.db.repository import insert_prices_batch
 
-            if ticker not in allowed_ticker:
-                raise ValueError(f'Неподдерживаемый тикер {ticker}')
-            if price <= 0:
-                raise ValueError(f'Цена меньше нуля')
-            if ts_unix <= 0:
-                raise ValueError(f'Некорректный timestamp')
-
-            row = Price(ticker=ticker, price=price, ts_unix=ts_unix)
-            db.add(row)
-            saved_count += 1
-        db.commit()
-        return saved_count
-    except Exception:
-        db.rollback()
-        raise
-
-from app.db.models import Price
+ALLOWED_TICKERS = {"btc_usd", "eth_usd"}
 
 
-def save_price(db, items) -> int:
-    # Счетчик успешно добавленных записей.
-    saved_count = 0
-    # Разрешаем только тикеры из ТЗ.
-    allowed_ticker = {"btc_usd", "eth_usd"}
+def save_prices(db: Session, items: Sequence[Mapping[str, object]]) -> int:
+    # Сервисный слой: проверяем бизнес-правила до обращения к БД.
+    for item in items:
+        # Приводим вход к ожидаемым типам.
+        ticker = str(item["ticker"])
+        price = Decimal(str(item["price"]))
+        ts_unix = int(item["ts_unix"])
 
-    try:
-        # Обрабатываем входные элементы по одному.
-        for item in items:
-            ticker = item["ticker"]
-            price = item["price"]
-            ts_unix = item["ts_unix"]
+        # Разрешены только тикеры из ТЗ.
+        if ticker not in ALLOWED_TICKERS:
+            raise ValueError(f"Unsupported ticker: {ticker}")
+        # Цена и время должны быть положительными.
+        if price <= 0:
+            raise ValueError("Price must be > 0")
+        if ts_unix <= 0:
+            raise ValueError("Invalid UNIX timestamp")
 
-            # Базовая валидация входных данных.
-            if ticker not in allowed_ticker:
-                raise ValueError(f"Неподдерживаемый тикер: {ticker}")
-            if price <= 0:
-                raise ValueError("Цена должна быть > 0")
-            if ts_unix <= 0:
-                raise ValueError("Некорректный timestamp")
-
-            # Создаем ORM-объект и добавляем в текущую транзакцию.
-            row = Price(ticker=ticker, price=price, ts_unix=ts_unix)
-            db.add(row)
-            saved_count += 1
-
-        # Фиксируем все добавленные записи в БД.
-        db.commit()
-        return saved_count
-    except Exception:
-        # Если что-то пошло не так, откатываем транзакцию.
-        db.rollback()
-        raise
+    # После валидации делегируем запись в репозиторий.
+    return insert_prices_batch(db=db, items=items)
